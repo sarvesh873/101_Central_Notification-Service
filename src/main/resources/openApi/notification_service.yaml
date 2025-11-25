@@ -1,0 +1,161 @@
+openapi: 3.0.0
+info:
+  title: Notification Service API
+  version: 1.0.0
+  description: API for retrieving and managing user notifications and transactional alerts.
+
+servers:
+  - url:  http://localhost:8082/notification_service/api
+    description: Production Server
+
+# --- Schemas: Define the data structures used ---
+components:
+  schemas:
+    NotificationDTO:
+      type: object
+      required:
+        - notificationId
+        - transactionId
+        - userId
+        - type
+        - sentAt
+      properties:
+        notificationId:
+          type: integer
+          description: Unique identifier for the sent notification record.
+        transactionId:
+          type: string
+          description: Link to the original transaction event.
+        userId:
+          type: string
+          description: The recipient of the notification.
+        type:
+          type: string
+          enum: [TRANSACTION_SUCCESS, REWARD_GRANTED, TRANSACTION_FAILED]
+          description: Category of the notification.
+        subject:
+          type: string
+          description: The title or subject line of the message.
+        content:
+          type: string
+          description: The full content of the message body.
+        channel:
+          type: string
+          enum: [EMAIL, SMS, PUSH]
+          description: Delivery channel used.
+        sentAt:
+          type: string
+          format: date-time
+          description: Timestamp when the notification was successfully sent.
+
+    ErrorResponse:
+      type: object
+      x-lombok-annotations:
+        - "@lombok.Builder"
+      properties:
+        errorCode:
+          type: number
+          format: double
+          description: Numeric error code
+        description:
+          type: string
+          description: Human-readable description providing more details about the error
+        errorType:
+          type: string
+          description: Categorization of the error (e.g., VALIDATION_ERROR, AUTHENTICATION_FAILED)
+        errorMessage:
+          type: string
+          description: A brief message summarizing the error condition
+
+    NotificationsList:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of notifications available for the user.
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationDTO'
+
+# --- Paths: Define the available endpoints ---
+paths:
+  /notifications/{userId}:
+    get:
+      tags:
+        - Notifications
+      summary: Retrieve a user's notification history.
+      operationId: getNotificationsByUserId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The UUID of the user whose notifications are being requested.
+
+      responses:
+        # --- Scenario 1: Success (200) ---
+        '200':
+          description: Successfully retrieved the list of user notifications.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationsList'
+              example:
+                notifications:
+                  - notificationId: 'a1b2c3d4-e5f6-7890-abcd-ef0123456789'
+                    transactionId: 'c6873238-625d-45d3-a14f-6efc2d0ef4dc'
+                    userId: '123e4567-e89b-12d3-a456-426655440000'
+                    type: 'TRANSACTION_SUCCESS'
+                    subject: 'Transaction Successful'
+                    content: 'You sent $500.00 to John Doe.'
+                    channel: 'EMAIL'
+                    sentAt: '2025-11-25T17:00:00Z'
+                  - notificationId: 'f1e2d3c4-b5a6-9876-0987-123456789012'
+                    transactionId: 'd7984349-1111-45d3-a14f-6efc2d0ef4dc'
+                    userId: '123e4567-e89b-12d3-a456-426655440000'
+                    type: 'REWARD_GRANTED'
+                    subject: 'Cashback Reward!'
+                    content: 'You earned $5.00 cashback.'
+                    channel: 'PUSH'
+                    sentAt: '2025-11-25T17:01:00Z'
+
+        # --- Scenario 2: User Not Found (404) ---
+        '404':
+          description: The specified userId was not found in the system.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2025-11-25T17:30:00Z'
+                status: 404
+                error: 'Not Found'
+                message: 'User ID 123e4567-e89b-12d3-a456-426655440001 not found.'
+
+        # --- Scenario 3: Bad Request (400) ---
+        '400':
+          description: Invalid request parameters (e.g., non-UUID format for userId, or invalid pagination values).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2025-11-25T17:30:00Z'
+                status: 400
+                error: 'Bad Request'
+                message: 'Invalid UUID format for path parameter userId.'
+
+        # --- Scenario 4: Internal Server Error (500) ---
+        '500':
+          description: Unexpected server error (e.g., database connection failure).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2025-11-25T17:30:00Z'
+                status: 500
+                error: 'Internal Server Error'
+                message: 'Database connection pool exhausted while fetching notifications.'

@@ -4,13 +4,15 @@ package com.central.notification_service.utils;
 import com.central.notification_service.model.Notification;
 import com.central.notification_service.model.NotificationChannel;
 import com.central.notification_service.model.NotificationType;
+import lombok.extern.slf4j.Slf4j;
 import org.openapitools.model.NotificationDTO;
-import transaction.events.TransactionEvent;
-
+import notification.events.TransactionEvent;
+import notification.events.RewardEvent;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
-public final class ServiceUtils {
+public class ServiceUtils {
 
     // Private constructor to prevent instantiation
     private ServiceUtils() {
@@ -30,21 +32,123 @@ public final class ServiceUtils {
                 .build();
     }
 
-
+    /**
+     * Creates and returns a notification based on the transaction event and type.
+     * 
+     * @param event The transaction event
+     * @param eventType The type of event (SENDER, RECEIVER, or REWARD)
+     * @return The created notification
+     */
     public static Notification createNotificationFromEvent(TransactionEvent event, String eventType) {
-        return Notification.builder()
+        String userId;
+        String subject;
+        String content;
+        NotificationType notificationType;
+        
+        switch (eventType) {
+            case "SENDER":
+                userId = event.getSenderId();
+                notificationType = NotificationType.TRANSACTION_SUCCESS;
+                subject = String.format("Transaction Processed: $%.2f Sent", event.getAmount());
+                content = String.format(
+                    "Dear Valued Customer,  " +
+                    "We have successfully processed your transaction.  " +
+                    "Transaction Details: " +
+                    "- Amount: $%.2f " +
+                    "- Recipient: %s " +
+                    "- Transaction ID: %s " +
+                    "- Date: %s  " +
+                    "Your current account balance is $%.2f.  " +
+                    "Thank you for choosing our service.  " +
+                    "Best regards, The Payment Team",
+                    event.getAmount(),
+                    event.getReceiverId(),
+                    event.getTransactionId(),
+                    LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                    1250.00 // Hardcoded balance as per requirements
+                );
+                break;
+                
+            case "RECEIVER":
+                userId = event.getReceiverId();
+                notificationType = NotificationType.TRANSACTION_SUCCESS;
+                subject = String.format("Payment Received: $%.2f Credited to Your Account", event.getAmount());
+                content = String.format(
+                    "Dear Valued Customer,  " +
+                    "We are pleased to inform you that a payment has been credited to your account.  " +
+                    "Transaction Details: " +
+                    "- Amount: $%.2f " +
+                    "- Sender: %s " +
+                    "- Transaction ID: %s " +
+                    "- Date: %s  " +
+                    "Your current account balance is $%.2f.  " +
+                    "Thank you for being a valued customer.  " +
+                    "Best regards, The Payment Team",
+                    event.getAmount(),
+                    event.getSenderId(),
+                    event.getTransactionId(),
+                    LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                    1750.00 // Hardcoded balance as per requirements
+                );
+                break;
+                
+            default:
+                throw new IllegalArgumentException("Unsupported event type: " + eventType);
+        }
+        
+        Notification.NotificationBuilder builder = Notification.builder()
                 .transactionId(event.getTransactionId())
-                .userId(event.getSenderId()) // or receiverId based on your needs
-                .type(NotificationType.valueOf("TRANSACTION_" + event.getStatus()))
-                .subject(String.format("Transaction %s - %s",
-                        event.getTransactionId(),
-                        event.getStatus()))
-                .content(String.format("Transaction of amount %s %s",
-                        event.getAmount(),
-                        event.getStatus().equals("SUCCESS") ? "was successful" : "has failed"))
-                .channel(NotificationChannel.EMAIL) // or get from event if available
-                .sentAt(LocalDateTime.now())
-                .build();
+                .userId(userId)
+                .type(notificationType)
+                .subject(subject)
+                .content(content)
+                .sentAt(LocalDateTime.now());
+                
+        // Set channel based on event type
+        if ("REWARD".equals(eventType)) {
+            builder.channel(NotificationChannel.PUSH);
+        } else {
+            builder.channel(NotificationChannel.EMAIL);
+        }
+        
+        return builder.build();
+    }
+
+
+    public static Notification createNotificationFromEvent(RewardEvent event, String eventType) {
+        String userId;
+        String subject;
+        String content;
+        NotificationType notificationType;
+
+        userId = event.getUserId();
+        notificationType = NotificationType.REWARD_GRANTED;
+        subject = "Congratulations on Your Reward!";
+        content = String.format(
+                "Dear Valued Customer, " +
+                        "We are delighted to inform you that you have been awarded a special reward! " +
+                        "Reward Details: " +
+                        "- Amount: $%.2f " +
+                        "- Transaction ID: %s " +
+                        "- Date: %s " +
+                        "This reward is our way of showing appreciation for your continued trust in our services. " +
+                        "The reward has been credited to your account. " +
+                        "Thank you for being a valued customer. " +
+                        "Best regards, The Rewards Team",
+                event.getRewardValue(),
+                event.getTransactionId(),
+                LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        );
+
+        Notification.NotificationBuilder builder = Notification.builder()
+                .transactionId(event.getTransactionId())
+                .userId(userId)
+                .type(notificationType)
+                .subject(subject)
+                .content(content)
+                .channel(NotificationChannel.PUSH)
+                .sentAt(LocalDateTime.now());
+        return builder.build();
     }
 
 }

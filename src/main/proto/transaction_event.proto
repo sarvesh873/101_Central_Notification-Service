@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
-package transaction.events;
+package notification.events;
 option java_multiple_files = true;
 
 

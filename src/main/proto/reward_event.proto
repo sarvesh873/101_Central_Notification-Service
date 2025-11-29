@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+package notification.events;
+option java_multiple_files = true;
+
+// Reward type enum
+enum RewardType {
+  CASHBACK = 0;
+  POINTS = 1;
+  DISCOUNT = 2;
+  REFERRAL = 3;
+  WELCOME = 4;
+}
+
+message RewardEvent {
+  string reward_id = 1;               // Unique identifier for the reward
+  string transaction_id = 2;          // Associated transaction ID
+  string user_id = 3;                 // User who received the reward
+  RewardType reward_type = 4;         // Type of reward
+  double reward_value = 5;            // Value of the reward
+  string reward_description = 6;       // Description of the reward
+  double transaction_amount = 7;       // Original transaction amount
+
+  // Timestamp when the reward was created
+  google.protobuf.Timestamp created_at = 8;
+
+  // Notification details (optional) // Title for the notification
+  string notification_message = 9;   // Detailed message for the user
+}

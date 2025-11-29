@@ -6,8 +6,8 @@ import com.central.notification_service.model.NotificationChannel;
 import com.central.notification_service.model.NotificationType;
 import lombok.extern.slf4j.Slf4j;
 import org.openapitools.model.NotificationDTO;
-import transaction.events.TransactionEvent;
-
+import notification.events.TransactionEvent;
+import notification.events.RewardEvent;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -92,40 +92,63 @@ public class ServiceUtils {
                 );
                 break;
                 
-            case "REWARD":
-                userId = event.getReceiverId();
-                notificationType = NotificationType.REWARD_GRANTED;
-                subject = "Congratulations on Your Reward!";
-                content = String.format(
-                    "Dear Valued Customer, " +
-                    "We are delighted to inform you that you have been awarded a special reward! " +
-                    "Reward Details: " +
-                    "- Amount: $%.2f " +
-                    "- Transaction ID: %s " +
-                    "- Date: %s " +
-                    "This reward is our way of showing appreciation for your continued trust in our services. " +
-                    "The reward has been credited to your account. " +
-                    "Thank you for being a valued customer. " +
-                    "Best regards, The Rewards Team",
-                    event.getAmount(),
-                    event.getTransactionId(),
-                    LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                );
-                break;
-                
             default:
                 throw new IllegalArgumentException("Unsupported event type: " + eventType);
         }
         
-        return Notification.builder()
+        Notification.NotificationBuilder builder = Notification.builder()
                 .transactionId(event.getTransactionId())
                 .userId(userId)
                 .type(notificationType)
                 .subject(subject)
                 .content(content)
-                .channel(NotificationChannel.EMAIL)
-                .sentAt(LocalDateTime.now())
-                .build();
+                .sentAt(LocalDateTime.now());
+                
+        // Set channel based on event type
+        if ("REWARD".equals(eventType)) {
+            builder.channel(NotificationChannel.PUSH);
+        } else {
+            builder.channel(NotificationChannel.EMAIL);
+        }
+        
+        return builder.build();
+    }
+
+
+    public static Notification createNotificationFromEvent(RewardEvent event, String eventType) {
+        String userId;
+        String subject;
+        String content;
+        NotificationType notificationType;
+
+        userId = event.getUserId();
+        notificationType = NotificationType.REWARD_GRANTED;
+        subject = "Congratulations on Your Reward!";
+        content = String.format(
+                "Dear Valued Customer, " +
+                        "We are delighted to inform you that you have been awarded a special reward! " +
+                        "Reward Details: " +
+                        "- Amount: $%.2f " +
+                        "- Transaction ID: %s " +
+                        "- Date: %s " +
+                        "This reward is our way of showing appreciation for your continued trust in our services. " +
+                        "The reward has been credited to your account. " +
+                        "Thank you for being a valued customer. " +
+                        "Best regards, The Rewards Team",
+                event.getRewardValue(),
+                event.getTransactionId(),
+                LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        );
+
+        Notification.NotificationBuilder builder = Notification.builder()
+                .transactionId(event.getTransactionId())
+                .userId(userId)
+                .type(notificationType)
+                .subject(subject)
+                .content(content)
+                .channel(NotificationChannel.PUSH)
+                .sentAt(LocalDateTime.now());
+        return builder.build();
     }
 
 }

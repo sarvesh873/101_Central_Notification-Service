@@ -19,4 +19,10 @@ public interface NotificationService {
 
     @Async
     CompletableFuture<Boolean> sendEmail(String toEmail, String subject, String content);
+    
+    @Async
+    CompletableFuture<Boolean> sendSms(String phoneNumber, String message);
+    
+    @Async
+    CompletableFuture<Boolean> sendPushNotification(String userId, String title, String message);
 }

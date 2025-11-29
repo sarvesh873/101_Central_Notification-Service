@@ -78,10 +78,40 @@ public class NotificationServiceImpl implements NotificationService {
             log.info("\n=== ASYNC EMAIL NOTIFICATION ===\nTo: {}\nSubject: {}\n{}\n=========================\n",
                     toEmail, subject, content);
             // Simulate some processing time
-            Thread.sleep(100); // Remove this in production
+            Thread.sleep(10); // Remove this in production
             return CompletableFuture.completedFuture(true);
         } catch (Exception e) {
             log.error("Error sending email: {}", e.getMessage(), e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Override
+    @Async
+    public CompletableFuture<Boolean> sendSms(String phoneNumber, String message) {
+        try {
+            log.info("\n=== ASYNC SMS NOTIFICATION ===\nTo: {}\nMessage: {}\n=========================\n",
+                    phoneNumber, message);
+            // Simulate some processing time
+            Thread.sleep(10); // Remove this in production
+            return CompletableFuture.completedFuture(true);
+        } catch (Exception e) {
+            log.error("Error sending SMS: {}", e.getMessage(), e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Override
+    @Async
+    public CompletableFuture<Boolean> sendPushNotification(String userId, String title, String message) {
+        try {
+            log.info("\n=== ASYNC PUSH NOTIFICATION ===\nTo User: {}\nTitle: {}\nMessage: {}\n=========================\n",
+                    userId, title, message);
+            // Simulate some processing time
+            Thread.sleep(10); // Remove this in production
+            return CompletableFuture.completedFuture(true);
+        } catch (Exception e) {
+            log.error("Error sending push notification: {}", e.getMessage(), e);
             return CompletableFuture.failedFuture(e);
         }
     }
